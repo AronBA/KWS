@@ -3,30 +3,34 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.util.Objects;
 
 public class Server {
-private ServerSocket server;
+    private ServerSocket server;
 
-private final File content = new File("src/www");
+    private final File contentFolder = new File("src/www");
 
-private File index;
+    private File index;
 
-public Server(int port){
-    try {
-            server = new ServerSocket(port);
-            server.setSoTimeout(100000);
-            if(!setIndex()){
-                throw new Exception("No index found");
+    public Server(int port){
+        try {
+                server = new ServerSocket(port);
+                server.setSoTimeout(100000);
+                if(!setIndex()){
+                    throw new Exception("No index found");
+                }
+
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
-    }
 
+
+    /**
+     * Checks if there is a valid index file in the www folder
+     */
     private boolean setIndex(){
-        File[] files = content.listFiles();
+        File[] files = contentFolder.listFiles();
 
         for (File file : files){
             if (file.getName().equals("index.html")){
@@ -34,19 +38,31 @@ public Server(int port){
                return true;
             }
         }
-        this.index = content;
         return false;
     }
-    private void handleGetRequest(PrintWriter out) throws IOException {
+    private void handleRequest(PrintWriter out, IRequest requestedSite) throws IOException {
 
-        String index = Files.readString(this.index.toPath(), StandardCharsets.UTF_8);
-        StringBuilder response = new StringBuilder();
-        response.append("HTTP/1.1 200 OK\r\n");
-        response.append("Content-Type: text/html\r\n");
-        response.append("\r\n");
-        response.append(index);
-        out.println(response.toString());
-        out.flush();
+        if (Objects.equals(requestedSite, "/") || Objects.equals(requestedSite, "/index.html")){
+            String index = Files.readString(this.index.toPath(), StandardCharsets.UTF_8);
+            StringBuilder response = new StringBuilder();
+            response.append("HTTP/1.1 200 OK\r\n");
+            response.append("Content-Type: text/html\r\n");
+            response.append("\r\n");
+            response.append(index);
+            out.println(response);
+            out.flush();
+        }
+        else {
+            StringBuilder response = new StringBuilder();
+            response.append("HTTP/1.1 404 error\r\n");
+            response.append("Content-Type: text/html\r\n");
+            response.append("\r\n");
+            response.append("<h1>Error 404</h1>");
+            out.println(response);
+            out.flush();
+        }
+
+
     }
 
 
@@ -54,7 +70,6 @@ public Server(int port){
         System.out.println("Server has started and listens to port " + server.getLocalPort());
 
         while(true) {
-
             Socket client = server.accept();
             System.out.println("One client connected: " + client.getLocalAddress());
 
@@ -69,14 +84,16 @@ public Server(int port){
                 String method = requestArray[0];
 
                 if (method.equals("GET")){
-                    handleGetRequest(out);
+                    handleRequest(out);
                 } else if (method.equals("POST")){
                    return;
                 } else {
                     return;
                 }
 
+
             }
+            client.close();
         }
     }
 }
