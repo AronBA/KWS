@@ -1,14 +1,18 @@
+import Requests.Request;
+import Response.ContentType;
+import Response.GetResponse;
+import Response.HttpStatus;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Objects;
 
 public class Server {
     private ServerSocket server;
 
-    private final File contentFolder = new File("src/www");
+    private final File contentFolder = new File("www");
 
     private File index;
 
@@ -40,38 +44,47 @@ public class Server {
         }
         return false;
     }
-    private void handleRequest(PrintWriter out, IRequest requestedSite) throws IOException {
 
-        if (Objects.equals(requestedSite, "/") || Objects.equals(requestedSite, "/index.html")){
-            String index = Files.readString(this.index.toPath(), StandardCharsets.UTF_8);
-            StringBuilder response = new StringBuilder();
-            response.append("HTTP/1.1 200 OK\r\n");
-            response.append("Content-Type: text/html\r\n");
-            response.append("\r\n");
-            response.append(index);
-            out.println(response);
-            out.flush();
-        }
-        else {
-            StringBuilder response = new StringBuilder();
-            response.append("HTTP/1.1 404 error\r\n");
-            response.append("Content-Type: text/html\r\n");
-            response.append("\r\n");
-            response.append("<h1>Error 404</h1>");
-            out.println(response);
-            out.flush();
+
+    private void handleGetRequest(Request request,PrintWriter out) throws IOException {
+        String requestedURI = request.getUri();
+
+        GetResponse response;
+
+        if (Objects.equals(requestedURI, "/") || Objects.equals(requestedURI, "/index.html")){
+            String indexbody = Files.readString(index.toPath());
+
+            response = new GetResponse("HTTP/1.1", HttpStatus.OK, ContentType.TEXT_HTML,indexbody);
+
+
+        } else {
+            File file = new File(contentFolder + requestedURI);
+            if (file.exists()){
+                String body = Files.readString(file.toPath());
+                response = new GetResponse("HTTP/1.1", HttpStatus.OK, ContentType.TEXT_HTML,body);
+            }
+            else {
+                response = new GetResponse("HTTP/1.1",HttpStatus.NOT_FOUND, ContentType.TEXT_HTML,"<h1> 404 file not found</h1>");
+            }
         }
 
+
+
+
+        out.append(response.build());
+        out.flush();
 
     }
+    private void handlePostRequest(Request request,BufferedReader in){
 
+    }
 
     public void run() throws IOException {
         System.out.println("Server has started and listens to port " + server.getLocalPort());
 
         while(true) {
             Socket client = server.accept();
-            System.out.println("One client connected: " + client.getLocalAddress());
+
 
             PrintWriter out = new PrintWriter(client.getOutputStream());
             BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
@@ -79,19 +92,14 @@ public class Server {
             String request = in.readLine();
 
             if (request != null){
-                System.out.println(request +" from "+ client.getLocalAddress());
-                String[] requestArray = request.split(" ");
-                String method = requestArray[0];
+                System.out.println(request + " from " + client.getLocalAddress());
+                Request r = new Request(request);
 
-                if (method.equals("GET")){
-                    handleRequest(out);
-                } else if (method.equals("POST")){
-                   return;
-                } else {
-                    return;
+                switch (r.getType()) {
+                    case "GET" -> handleGetRequest(r, out);
+                    case "POST" -> handlePostRequest(r, in);
+                    default -> throw new RuntimeException("Unsupported Request");
                 }
-
-
             }
             client.close();
         }
