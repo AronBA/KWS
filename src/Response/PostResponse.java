@@ -1,10 +1,10 @@
 package Response;
 
-public class GetResponse extends HttpResponse{
+public class PostResponse extends HttpResponse{
 
 
 
-    public GetResponse(String version, HttpStatus httpStatus,ContentType contentType, String body) {
+    public PostResponse(String version, HttpStatus httpStatus,ContentType contentType, String body) {
         super(version, httpStatus, body, contentType);
     }
     public String build(){

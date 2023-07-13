@@ -2,6 +2,8 @@ import Requests.Request;
 import Response.ContentType;
 import Response.GetResponse;
 import Response.HttpStatus;
+import Response.PostResponse;
+
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -59,7 +61,7 @@ public class Server {
 
         } else {
             File file = new File(contentFolder + requestedURI);
-            if (file.exists()){
+            if (file.exists() && file.isFile()){
                 String body = Files.readString(file.toPath());
                 response = new GetResponse("HTTP/1.1", HttpStatus.OK, ContentType.TEXT_HTML,body);
             }
@@ -75,9 +77,31 @@ public class Server {
         out.flush();
 
     }
-    private void handlePostRequest(Request request,BufferedReader in){
 
-    }
+    private void handlePostRequest(Request request, BufferedReader in, PrintWriter out) throws IOException {
+        StringBuilder requestBody = new StringBuilder();
+
+            int contentLength = 0;
+            String contentLengthHeader = "Content-Length:";
+            String headerLine;
+            while ((headerLine = in.readLine()) != null && !headerLine.isEmpty()) {
+                if (headerLine.startsWith(contentLengthHeader)) {
+                    contentLength = Integer.parseInt(headerLine.substring(contentLengthHeader.length()).trim());
+                }
+            }
+            for (int i = 0; i < contentLength; i++) {
+                requestBody.append((char) in.read());
+            }
+
+            PostResponse response = new PostResponse("HTTP/1.1",HttpStatus.ACCEPTED,ContentType.TEXT_HTML,"<h1> hi "+ requestBody +"</h1>");
+
+
+
+            out.append(response.build());
+            out.flush();
+
+        }
+
 
     public void run() throws IOException {
         System.out.println("Server has started and listens to port " + server.getLocalPort());
@@ -95,9 +119,11 @@ public class Server {
                 System.out.println(request + " from " + client.getLocalAddress());
                 Request r = new Request(request);
 
+
+
                 switch (r.getType()) {
                     case "GET" -> handleGetRequest(r, out);
-                    case "POST" -> handlePostRequest(r, in);
+                    case "POST" -> handlePostRequest(r,in,out);
                     default -> throw new RuntimeException("Unsupported Request");
                 }
             }
