@@ -32,9 +32,6 @@ public class Server {
         }
 
 
-    /**
-     * Checks if there is a valid index file in the www folder
-     */
     private boolean setIndex(){
         File[] files = contentFolder.listFiles();
 
@@ -47,32 +44,27 @@ public class Server {
         return false;
     }
 
-    private void handleGetRequest(Request request,PrintWriter out) throws IOException {
+    private GetResponse getResponse(Request request) throws IOException {
         String requestedURI = request.getUri();
-
-        GetResponse response;
 
         if (Objects.equals(requestedURI, "/") || Objects.equals(requestedURI, "/index.html")){
             String indexbody = Files.readString(index.toPath());
-            response = new GetResponse("HTTP/1.1", HttpStatus.OK, ContentType.TEXT_HTML,indexbody);
-            out.append(response.build());
-            out.flush();
-            return;
+            return new GetResponse("HTTP/1.1", HttpStatus.OK, ContentType.TEXT_HTML,indexbody);
         }
-
         File file = new File(contentFolder + requestedURI);
         if (file.exists() && file.isFile()){
             String body = Files.readString(file.toPath());
-            response = new GetResponse("HTTP/1.1", HttpStatus.OK, ContentType.TEXT_HTML,body);
-            out.append(response.build());
-            out.flush();
-            return;
+            return new GetResponse("HTTP/1.1", HttpStatus.OK, ContentType.TEXT_HTML,body);
         }
+        return new GetResponse("HTTP/1.1",HttpStatus.NOT_FOUND, ContentType.TEXT_HTML,"<h1> 404 file not found</h1>");
+    }
 
-        response = new GetResponse("HTTP/1.1",HttpStatus.NOT_FOUND, ContentType.TEXT_HTML,"<h1> 404 file not found</h1>");
+    private void handleGetRequest(Request request,PrintWriter out) throws IOException {
+        GetResponse response = getResponse(request);
 
         out.append(response.build());
         out.flush();
+
     }
 
     private void handlePostRequest(Request request, BufferedReader in, PrintWriter out) throws IOException {
