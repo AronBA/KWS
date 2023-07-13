@@ -17,6 +17,9 @@ public class Main {
             return;
 
         }
+        System.out.println("-------------------------------");
+        System.out.println("          KekWebServer         ");
+        System.out.println("-------------------------------");
         new Server(port).run();
 
 

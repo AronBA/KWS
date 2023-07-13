@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="kws:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/kws_jar</output-path>
+    <root id="archive" name="kws.jar">
+      <element id="module-output" name="kws" />
+    </root>
+  </artifact>
+</component>

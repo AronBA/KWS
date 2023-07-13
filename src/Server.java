@@ -47,7 +47,6 @@ public class Server {
         return false;
     }
 
-
     private void handleGetRequest(Request request,PrintWriter out) throws IOException {
         String requestedURI = request.getUri();
 
@@ -55,27 +54,25 @@ public class Server {
 
         if (Objects.equals(requestedURI, "/") || Objects.equals(requestedURI, "/index.html")){
             String indexbody = Files.readString(index.toPath());
-
             response = new GetResponse("HTTP/1.1", HttpStatus.OK, ContentType.TEXT_HTML,indexbody);
-
-
-        } else {
-            File file = new File(contentFolder + requestedURI);
-            if (file.exists() && file.isFile()){
-                String body = Files.readString(file.toPath());
-                response = new GetResponse("HTTP/1.1", HttpStatus.OK, ContentType.TEXT_HTML,body);
-            }
-            else {
-                response = new GetResponse("HTTP/1.1",HttpStatus.NOT_FOUND, ContentType.TEXT_HTML,"<h1> 404 file not found</h1>");
-            }
+            out.append(response.build());
+            out.flush();
+            return;
         }
 
+        File file = new File(contentFolder + requestedURI);
+        if (file.exists() && file.isFile()){
+            String body = Files.readString(file.toPath());
+            response = new GetResponse("HTTP/1.1", HttpStatus.OK, ContentType.TEXT_HTML,body);
+            out.append(response.build());
+            out.flush();
+            return;
+        }
 
-
+        response = new GetResponse("HTTP/1.1",HttpStatus.NOT_FOUND, ContentType.TEXT_HTML,"<h1> 404 file not found</h1>");
 
         out.append(response.build());
         out.flush();
-
     }
 
     private void handlePostRequest(Request request, BufferedReader in, PrintWriter out) throws IOException {
